@@ -1,147 +1,86 @@
 # technical-test-backend
 ![Python](https://img.shields.io/badge/Python-grey?logo=python)
+## Overview
 
-Technical test for Backend Role
----
-
-## 📑 Table of Contents
-
-- [Quick Start](#-quick-start)
-- [Architecture Overview](#-architecture-overview)
-- [Local Development](#-local-development)
-- [Deployment](#-deployment)
-- [Project Structure](#-project-structure)
-- [Environment Variables](#-environment-variables)
-- [Tech Stack](#-tech-stack)
-- [Project Metadata](#-project-metadata)
-- [Troubleshooting](#-troubleshooting)
+A minimal [FastAPI](https://fastapi.tiangolo.com/) application that implements JWT-based authentication.
+Your goal is to get it running correctly and verify that every endpoint responds as documented below.
 
 ---
 
-## 🚀 Quick Start
+## Prerequisites
 
-### Prerequisites
-
-- [Python](https://www.python.org/) + [uv](https://docs.astral.sh/uv/)
-
-### Setup
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/avahi-org/technical-test-backend.git
-   cd technical-test-backend
-   ```
-
-2. **Install dependencies**
-   ```bash
-   uv sync
-   ```
-
-3. **Create environment file**
-   ```bash
-   cp .env.example .env
-   # Fill in your values
-   ```
-
-4. **Run locally**
-   ```bash
-   uv run python main.py
-   ```
+| Tool | Install |
+|------|---------|
+| [`uv`](https://docs.astral.sh/uv/getting-started/installation/) | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| [Docker](https://docs.docker.com/get-docker/) + Compose plugin | Official Docker docs |
 
 ---
 
-## 🏗 Architecture Overview
-
-<!-- Describe the system architecture and add a diagram if applicable -->
-
-### Core Components
-
-| Component | Description |
-|-----------|-------------|
-| <!-- Component --> | <!-- Description --> |
-
----
-
-## 💻 Local Development
-
-### Without Docker
+## Running with Docker
 
 ```bash
+# 1. Generate / refresh the dependency lock file
+uv lock
+
+# 2. Build the image and start the container
+docker compose up --build
+```
+
+The API will be available at <http://localhost:8000>.
+
+---
+
+## Running Locally
+
+```bash
+# Install the virtual environment
 uv sync
-uv run python main.py
+
+# Start the development server
+uv run uvicorn main:app --app-dir src --host 0.0.0.0 --port 8000 --reload
 ```
 
-### With Docker
+---
+
+## Verifying the API
+
+All examples assume the service is reachable at `http://localhost:8000`.
+
+### Health check
 
 ```bash
-# Build
-docker build -t technical-test-backend:dev .
-
-# Run
-docker run -it --rm -p 8080:8080 --env-file .env technical-test-backend:dev
+curl -s http://localhost:8000/
+# Expected → {"message":"Hello, World!"}
 ```
 
----
-
-## 🚢 Deployment
-
-<!-- Deployments are typically automated via GitHub Actions on push to develop. -->
-
-### Deploy to Development
+### Obtain a JWT
 
 ```bash
-git push origin develop
+curl -s -X POST http://localhost:8000/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=john_doe&password=password"
+# Expected → {"access_token":"<token>","token_type":"bearer"}
+```
+
+### Access a protected route
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8000/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=john_doe&password=password" \
+  | jq -r .access_token)
+
+curl -s http://localhost:8000/me \
+  -H "Authorization: Bearer $TOKEN"
+# Expected → {"username":"john_doe"}
 ```
 
 ---
 
-## 🗂 Project Structure
+## API Reference
 
-```
-technical-test-backend/
-├── .github/
-│   └── workflows/       # CI/CD pipelines
-├── src/                 # Application source code
-├── main.py              # Entry point
-├── Dockerfile           # Production container
-├── pyproject.toml       # Dependencies
-└── README.md
-```
-
----
-
-## 🔑 Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| <!-- VAR_NAME --> | ✅ | <!-- Description --> |
-
-> ⚠️ Never commit `.env` files — they are gitignored by default.
-
----
-
-## 📦 Tech Stack
-
-| Component | Description |
-|-----------|-------------|
-| Python | Application logic and scripting |
-
----
-
-## 📋 Project Metadata
-
-**Project Type:** Internal Infra
-
-### Team
-
-| Role | GitHub Username |
-|------|----------------|
-| Lead | @OscarAvahi |
-
----
-
-## 🐛 Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| <!-- Issue --> | <!-- Solution --> |
+| Method | Path     | Auth         | Description                    |
+|--------|----------|--------------|--------------------------------|
+| GET    | `/`      | —            | Health check                   |
+| POST   | `/token` | —            | Exchange credentials for a JWT |
+| GET    | `/me`    | Bearer token | Return the authenticated user  |
