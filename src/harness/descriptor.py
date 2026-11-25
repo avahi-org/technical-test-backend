@@ -17,7 +17,7 @@ class ExerciseDescriptor:
     to the app, the index or the README tooling.
     """
 
-    slug: str  # Must match the folder name; also the URL prefix, e.g. /auth_debug
+    slug: str  # Must match the folder name; also the URL prefix (/<slug>)
     order: int  # Fixed per exercise, never resequenced. Must match its manifest and spec number.
     title: str
     description: str

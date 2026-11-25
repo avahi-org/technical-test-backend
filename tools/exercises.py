@@ -4,11 +4,14 @@
     uv run python tools/exercises.py check                       # registry, manifests, ownership, README
     uv run python tools/exercises.py readme --write              # regenerate the README exercise table
     uv run python tools/exercises.py new my_slug --order 4       # scaffold a new exercise
-    uv run python tools/exercises.py build --set a,b --out dist  # build a candidate zip
+    uv run python tools/exercises.py select --track 20           # random set for a 20-minute interview
+    uv run python tools/exercises.py build --track 20 --out dist # build a zip from a random set
+    uv run python tools/exercises.py build --set a,b --out dist  # build a zip from an explicit set
 """
 import argparse
 import hashlib
 import json
+import random
 import re
 import shutil
 import subprocess
@@ -32,6 +35,38 @@ FORBIDDEN_WORDS = ["answer key", "answer-key", "export-ignore", "interviewer"]
 
 def manifests() -> dict[str, dict]:
     return {p.stem: json.loads(p.read_text()) for p in sorted((ROOT / "manifests").glob("*.json"))}
+
+
+def normalize(slug: str) -> str:
+    """Accept `auth-debug` for `auth_debug`: a hyphen typo should not fail a build."""
+    return slug.strip().replace("-", "_")
+
+
+def track_name(track: str) -> str:
+    return track if track.endswith("min") else f"{track} min"
+
+
+def select(track: str, rng: random.Random | None = None) -> list[str]:
+    """Pick the exercises for one interview track at random.
+
+    Each track (a duration) offers `quota` exercises (tools/tracks.json). Exercises whose manifest says
+    `"pinned": true` are always included and count toward the quota. Stateless: it does not remember
+    what it picked last time.
+    """
+    rng = rng or random.SystemRandom()
+    name = track_name(track)
+    tracks = json.loads((ROOT / "tools" / "tracks.json").read_text())
+    if name not in tracks:
+        sys.exit(f'unknown track "{track}" (known: {", ".join(tracks)})')
+    ms = manifests()
+    pool = sorted((m for m in ms.values() if m["duration"] == name), key=lambda m: m["order"])
+    if not pool:
+        sys.exit(f"no exercises with duration {name}")
+    pinned = [m["slug"] for m in pool if m.get("pinned")]
+    rest = [m["slug"] for m in pool if not m.get("pinned")]
+    extra = max(tracks[name]["quota"] - len(pinned), 0)
+    chosen = pinned + rng.sample(rest, min(extra, len(rest)))
+    return sorted(chosen, key=lambda s: ms[s]["order"])
 
 
 def render_table(descriptors) -> str:
@@ -143,7 +178,12 @@ def leak_check(tree: Path, removed: set[str]) -> list[str]:
 def cmd_build(args):
     registry = discover()
     descriptors = {e.slug: e for e in registry.exercises}
-    keep = list(descriptors) if args.set == "all" else [s for s in args.set.split(",") if s]
+    if args.track:
+        keep = select(args.track, random.Random(args.seed) if args.seed else None)
+    elif args.set == "all":
+        keep = list(descriptors)
+    else:
+        keep = [normalize(s) for s in args.set.split(",") if s]
     unknown = set(keep) - descriptors.keys()
     if unknown or not keep:
         sys.exit(f"unknown or empty set: {sorted(unknown)}")
@@ -186,15 +226,22 @@ def cmd_build(args):
                 code = ("import sys; sys.path.insert(0,'src'); from harness.registry import discover; r=discover(); "
                         f"assert not r.errors, r.errors; assert [e.slug for e in r.exercises]=={sorted(keep, key=lambda s: descriptors[s].order)!r}, r.exercises")
                 subprocess.run(["uv", "run", "python", "-c", code], cwd=proj, check=True)
-                subprocess.run(["uv", "run", "pytest", "--collect-only", "-q"], cwd=proj, check=True)
+                collected = subprocess.run(["uv", "run", "pytest", "--collect-only", "-q"], cwd=proj)
+                if collected.returncode not in (0, 5):  # 5 = nothing collected: fine for standalone-only sets
+                    sys.exit("pytest could not collect the extracted zip")
             finally:
                 shutil.rmtree(check_dir, ignore_errors=True)
 
-        meta = {"set": keep, "sha256": hashlib.sha256(zip_path.read_bytes()).hexdigest(), "size": zip_path.stat().st_size}
+        meta = {"track": track_name(args.track) if args.track else None, "set": keep, "sha256": hashlib.sha256(zip_path.read_bytes()).hexdigest(), "size": zip_path.stat().st_size}
         (out / "build.json").write_text(json.dumps(meta, indent=2) + "\n")
         print(f"built {zip_path} ({meta['size']} bytes) set={keep}")
     finally:
         shutil.rmtree(work, ignore_errors=True)
+    return 0
+
+
+def cmd_select(args):
+    print(",".join(select(args.track, random.Random(args.seed) if args.seed else None)))
     return 0
 
 
@@ -237,7 +284,8 @@ def main():
     sub.add_parser("check").set_defaults(fn=cmd_check)
     r = sub.add_parser("readme"); r.add_argument("--write", action="store_true"); r.set_defaults(fn=cmd_readme)
     n = sub.add_parser("new"); n.add_argument("slug"); n.add_argument("--order", type=int, required=True); n.set_defaults(fn=cmd_new)
-    b = sub.add_parser("build"); b.add_argument("--set", required=True); b.add_argument("--out", default="dist"); b.add_argument("--skip-verify", action="store_true"); b.add_argument("--ref", default="HEAD", help="git tree-ish to package (default HEAD: only committed files ship)"); b.set_defaults(fn=cmd_build)
+    sel = sub.add_parser("select", help="print a random set of slugs for a track"); sel.add_argument("--track", required=True); sel.add_argument("--seed"); sel.set_defaults(fn=cmd_select)
+    b = sub.add_parser("build"); g = b.add_mutually_exclusive_group(required=True); g.add_argument("--set", help="comma-separated slugs, or `all`"); g.add_argument("--track", help="20 or 60: pick the exercises at random"); b.add_argument("--seed", help="make --track reproducible"); b.add_argument("--out", default="dist"); b.add_argument("--skip-verify", action="store_true"); b.add_argument("--ref", default="HEAD", help="git tree-ish to package (default HEAD: only committed files ship)"); b.set_defaults(fn=cmd_build)
     args = p.parse_args()
     sys.exit(args.fn(args))
 

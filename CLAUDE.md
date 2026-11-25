@@ -23,3 +23,10 @@ harness. Modelled on the front-end exercises repo.
 - The README exercise table is generated from the descriptors: run `readme --write`, never edit between the markers.
 - Anything internal (specs, keys, manifests, tooling, workflows, reference, CLAUDE.md) must be in `.gitattributes` as `export-ignore`. Candidate-facing files must not contain internal vocabulary (the leak check fails the build).
 - Run `uv run python tools/exercises.py check` and `uv run pytest` before committing; `git archive` only packages committed files.
+
+## Releases and random selection
+
+- `tools/tracks.json`: exercises offered per track. `select --track 20` / `build --track 20` pick at random (SystemRandom; `--seed` makes it reproducible). Manifests may add `"pinned": true`. Stateless, so it can repeat the previous pick, and it only varies once a track has more exercises than its quota.
+- `--set a,b` builds an explicit set (hyphens in slugs are accepted); `--set all` builds everything.
+- Workflows: `ci.yaml` (checks), `package.yaml` (internal `unstable` release), `build-candidate.yaml` (manual: track or slugs, zip attached to the run for 7 days). Distribution to the candidate is manual.
+- Caution: if this repo is public, reference solutions, specs and answer keys are readable on GitHub even though the zip excludes them, and any release is public too.

@@ -43,10 +43,16 @@ Everything below and the paths in `.gitattributes` never reach a candidate. See 
 | Add an exercise | `uv run python tools/exercises.py new <slug> --order N`, fill the TODOs, then `readme --write` and `check` |
 | Validate the repo | `uv run python tools/exercises.py check` and `uv run pytest` (includes `tests/`) |
 | Prove an exercise is solvable | `uv run pytest src/exercises --target reference` (all green) |
-| Build a candidate zip | `uv run python tools/exercises.py build --set auth_debug,users_routes_debug --out dist` |
+| Build a zip, random set for a track | `uv run python tools/exercises.py build --track 20 --out dist` (`select --track 20` only prints the pick) |
+| Build a zip, explicit set | `uv run python tools/exercises.py build --set auth_debug,users_routes_debug --out dist` (hyphens in slugs are accepted) |
+| Build in GitHub | Actions: **Build candidate zip**, choose a track (random pick) or enter slugs, download the `candidate-zip` artifact |
 
 A zip is built from `git archive HEAD`, so only **committed** files are packaged and `.gitattributes`
 removes internal paths (reference solutions, specs, answer keys, manifests, tooling, workflows). The
 build then prunes to the chosen exercises, regenerates the table above, strips these maintainer
 sections, runs a leak check and verifies the extracted zip.
+
+**Random pick.** `tools/tracks.json` says how many exercises each track offers (`20 min`: 2, `60 min`: 1). A
+manifest may set `"pinned": true` to always include that exercise. The pick is stateless: it does not avoid
+repeating the last set. It only varies once a track has more exercises than its quota.
 <!-- DEV-ONLY:END -->
