@@ -1,86 +1,52 @@
-# technical-test-backend
+# Backend Interview Exercises
+
 ![Python](https://img.shields.io/badge/Python-grey?logo=python)
-## Overview
 
-A minimal [FastAPI](https://fastapi.tiangolo.com/) application that implements JWT-based authentication.
-Your goal is to get it running correctly and verify that every endpoint responds as documented below.
+A set of self-contained FastAPI exercises. Each one lives in its own folder under
+`src/exercises/<slug>/` with its own README, code and tests. Read the README of the exercise you
+were given first.
 
----
+<!-- EXERCISES:TABLE:START -->
+| # | Exercise | What it is | Type | Length | Level |
+|---|----------|-----------|------|--------|-------|
+| 1 | `src/exercises/auth_debug/` | **Debug the login flow.** A FastAPI JWT login that issues a token but rejects it on the protected route. Reproduce, find the cause and fix it. | debug | 20 min | Easy |
+| 2 | `src/exercises/users_routes_debug/` | **Fix the users routes.** A small users API where one route never responds as documented and a missing user is not reported correctly. | debug | 20 min | Medium |
+| 3 | `src/exercises/docker_env_debug/` | **Get the service running in Docker.** A small API that will not build or start in Docker. Troubleshoot the image, the dependency setup and the lock file until it answers on port 8000. | debug | 60 min | Hard |
+<!-- EXERCISES:TABLE:END -->
 
-## Prerequisites
+## Getting started
 
-| Tool | Install |
-|------|---------|
-| [`uv`](https://docs.astral.sh/uv/getting-started/installation/) | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| [Docker](https://docs.docker.com/get-docker/) + Compose plugin | Official Docker docs |
-
----
-
-## Running with Docker
-
-```bash
-# 1. Generate / refresh the dependency lock file
-uv lock
-
-# 2. Build the image and start the container
-docker compose up --build
-```
-
-The API will be available at <http://localhost:8000>.
-
----
-
-## Running Locally
+Requires [`uv`](https://docs.astral.sh/uv/getting-started/installation/) (it installs the right Python for you).
 
 ```bash
-# Install the virtual environment
 uv sync
-
-# Start the development server
-uv run uvicorn main:app --app-dir src --host 0.0.0.0 --port 8000 --reload
+uv run uvicorn main:app --app-dir src --reload     # http://localhost:8000
 ```
 
----
+- `http://localhost:8000/` lists the exercises that are mounted; `/docs` lets you try their routes.
+- Run the checks for one exercise: `uv run pytest src/exercises/<slug>`.
+- For the debugging exercises, failing tests are expected at the start. They are your reproduction.
+- Docker is only needed by the exercise that is about Docker; its README says so.
 
-## Verifying the API
+## Offline exercises
 
-All examples assume the service is reachable at `http://localhost:8000`.
+`offline-exercises/` holds two plain-text problems for when running code on this machine is not an
+option. Answer them in writing or on paper.
 
-### Health check
+<!-- DEV-ONLY:START -->
+## Maintainers
 
-```bash
-curl -s http://localhost:8000/
-# Expected → {"message":"Hello, World!"}
-```
+Everything below and the paths in `.gitattributes` never reach a candidate. See `CLAUDE.md` for the full contributor guide.
 
-### Obtain a JWT
+| I want to... | Do this |
+|---|---|
+| Add an exercise | `uv run python tools/exercises.py new <slug> --order N`, fill the TODOs, then `readme --write` and `check` |
+| Validate the repo | `uv run python tools/exercises.py check` and `uv run pytest` (includes `tests/`) |
+| Prove an exercise is solvable | `uv run pytest src/exercises --target reference` (all green) |
+| Build a candidate zip | `uv run python tools/exercises.py build --set auth_debug,users_routes_debug --out dist` |
 
-```bash
-curl -s -X POST http://localhost:8000/token \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=john_doe&password=password"
-# Expected → {"access_token":"<token>","token_type":"bearer"}
-```
-
-### Access a protected route
-
-```bash
-TOKEN=$(curl -s -X POST http://localhost:8000/token \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=john_doe&password=password" \
-  | jq -r .access_token)
-
-curl -s http://localhost:8000/me \
-  -H "Authorization: Bearer $TOKEN"
-# Expected → {"username":"john_doe"}
-```
-
----
-
-## API Reference
-
-| Method | Path     | Auth         | Description                    |
-|--------|----------|--------------|--------------------------------|
-| GET    | `/`      | —            | Health check                   |
-| POST   | `/token` | —            | Exchange credentials for a JWT |
-| GET    | `/me`    | Bearer token | Return the authenticated user  |
+A zip is built from `git archive HEAD`, so only **committed** files are packaged and `.gitattributes`
+removes internal paths (reference solutions, specs, answer keys, manifests, tooling, workflows). The
+build then prunes to the chosen exercises, regenerates the table above, strips these maintainer
+sections, runs a leak check and verifies the extracted zip.
+<!-- DEV-ONLY:END -->

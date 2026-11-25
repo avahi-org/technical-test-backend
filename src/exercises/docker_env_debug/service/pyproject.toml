@@ -1,0 +1,10 @@
+[project]
+name = "service"
+version = "0.1.0"
+description = "Small API to get running in Docker"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.141.1",
+    "passlib[bcrypt]>=1.7.4",
+    "bcrypt>=4.0.1,<4.1",
+]

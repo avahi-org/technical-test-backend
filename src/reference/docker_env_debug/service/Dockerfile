@@ -1,5 +1,5 @@
 # --- Builder stage: resolve and install backend dependencies with uv ---
-FROM python:3.12-slim AS builder
+FROM python:3.13-slim AS builder
 
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
@@ -14,13 +14,13 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 # --- Runtime stage: Python base image ---
-FROM python:3.12-slim AS app
+FROM python:3.13-slim AS app
 
 WORKDIR /app
 COPY --from=builder /var/task-venv /var/task-venv
 ENV PATH="/var/task-venv/bin:$PATH"
 
 # Backend application source.
-COPY src/ ./
+COPY app/ ./
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

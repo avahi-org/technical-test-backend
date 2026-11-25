@@ -1,0 +1,11 @@
+{
+  "slug": "docker_env_debug",
+  "order": 3,
+  "duration": "60 min",
+  "paths": [
+    "src/exercises/docker_env_debug",
+    "src/reference/docker_env_debug",
+    ".specs/003-docker_env_debug",
+    ".answer-keys/docker_env_debug.md"
+  ]
+}

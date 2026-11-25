@@ -63,3 +63,6 @@ desktop.ini
 logs/
 *.tmp
 *.temp
+
+# Candidate zip build output
+dist/
