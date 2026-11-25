@@ -1,0 +1,11 @@
+{
+  "slug": "auth_debug",
+  "order": 1,
+  "duration": "20 min",
+  "paths": [
+    "src/exercises/auth_debug",
+    "src/reference/auth_debug",
+    ".specs/001-auth_debug",
+    ".answer-keys/auth_debug.md"
+  ]
+}

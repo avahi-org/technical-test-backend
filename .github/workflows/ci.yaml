@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      # Manifests, ownership, denylist and README table.
+      - run: uv run python tools/exercises.py check
+      # Platform invariants.
+      - run: uv run pytest tests -q
+      # Every exercise must be solvable: its visible tests are green against the reference.
+      - run: uv run pytest src --target reference -q
+      # The candidate-facing code must at least import and collect.
+      - run: uv run pytest src --collect-only -q

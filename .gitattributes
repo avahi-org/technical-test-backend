@@ -1,0 +1,17 @@
+# Candidate zip denylist. `git archive` honours `export-ignore`, so these paths never reach a
+# candidate. Everything else ships by default: when adding an internal-only path, add it here.
+# Rules are anchored with a leading slash on purpose: an unanchored `tests/` would also strip every
+# exercise's own `tests/` folder from the candidate zip.
+# tools/exercises.py `check` fails if the core entries below disappear; `build` re-derives this
+# list and fails if any of it leaked into the zip.
+
+/manifests/ export-ignore
+/tools/ export-ignore
+/tests/ export-ignore
+/.specs/ export-ignore
+/.answer-keys/ export-ignore
+/src/reference/ export-ignore
+/.github/ export-ignore
+/.claude/ export-ignore
+/CLAUDE.md export-ignore
+/.gitattributes export-ignore

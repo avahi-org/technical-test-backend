@@ -8,11 +8,11 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 
-SECRET_KEY = "change-me"  # load from env in real use
+SECRET_KEY = "change-me-change-me-change-me-32b!"  # load from env in real use
 ALGORITHM = "HS256"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth_debug/token")
 
 # DB - standby
 fake_users_db = {

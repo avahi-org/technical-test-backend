@@ -1,0 +1,24 @@
+name: Build candidate zip
+
+# Manual: pick the exercises one candidate should get. Builds, verifies the extracted zip and
+# attaches it to the run as a short-lived artifact (7 days). Nothing is published.
+on:
+  workflow_dispatch:
+    inputs:
+      exercises:
+        description: "Comma-separated slugs, e.g. auth_debug,users_routes_debug"
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - run: uv run python tools/exercises.py build --set "${{ inputs.exercises }}" --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: candidate-zip
+          path: dist/
+          retention-days: 7
